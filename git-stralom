@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh -e
 
 feature="feature"
 release="release"
@@ -54,8 +54,9 @@ executeGit(){
 }
 
 merge(){
-  executeGit "git checkout -b $branch --track origin/$1"
-  executeGit "git merge --no-ff $action/$branch"
+  executeGit "git pull origin $1"
+  executeGit "git checkout $1"
+  executeGit "git merge --no-ff $operation/$branch"
   executeGit "git push origin $1"
 }
 
@@ -63,7 +64,7 @@ if [ "$operation" = $init ]
 then
   executeGit "git init"
   executeGit "git add ."
-  executeGit "git commit --allow-empty -m "Initial commit""
+  git commit --allow-empty -m "Initial commit"
   executeGit "git checkout -b homolog master"
 
 
@@ -97,7 +98,9 @@ then
     8) icon=":rocket:";;
     *) icon="";;
   esac
-  executeGit "git commit -m '$icon $action'  "
+  echo "%%"
+  executeGit "git add ."
+  git commit -m "$icon $action"
 else
 
   if [ "$action" = "start" ]
@@ -105,11 +108,11 @@ else
     echo "Digite o nome da branch"
     read -r branch
     executeGit "git fetch --all"
-    executeGit "git checkout -b $branch --track origin/master"
+    executeGit "git checkout -b $operation/$branch --track origin/master"
   elif [ "$action" = "publish" ]
   then
     executeGit "git checkout  $operation/$branch"
-    executeGit "git push origin $action/$branch"
+    executeGit "git push origin $operation/$branch"
   elif [ "$action" = "pull" ]
   then
     executeGit "git checkout -b $operation/$branch"
