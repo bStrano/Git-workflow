@@ -1,0 +1,128 @@
+#!/bin/sh
+
+feature="feature"
+release="release"
+hotfix="hotfix"
+commit="commit"
+init="init"
+
+# Ações
+start="start"
+finish="finish"
+publish="publish"
+homolog="homolog"
+
+operation=$1
+action=$2
+branch=$3
+
+
+# ********************************** VALIDAÇÃO DE PARAMETROS **********************************
+if [ "$operation" != $feature ] && [ "$operation" != $release ] && [ "$operation" != $hotfix ] && [ "$operation" != $commit ] && [ "$operation" != $init ]
+then
+  printf "Operação invalída. \nOpções validas: ['feature', 'release', 'hotfix', 'commit', 'init'] \n"
+  exit
+fi
+
+
+# Validação de parametros
+if [ "$operation" != $commit ] && [ "$operation" != $init ] && [ "$action" != $start ] && [ "$action" != $finish ] && [ "$action" != "homolog" ]&& [ "$action" != $publish ] && [ "$action" != "pull" ]
+then
+  printf "Ação invalída. \nOpções validas: ['start', 'finish', 'publish'] \n"
+  exit
+fi
+
+
+if [ "$operation" = $commit ]
+then
+  if [ -z "$action" ]
+  then
+       printf "Digite a menssagem do commit. git stralom commit 'message'\n"
+       exit
+  fi
+fi
+# ********************************** FIM **********************************
+
+
+executeGit(){
+  echo "$1"
+  $1
+  if [ $? -ne 0 ]; then
+    echo "DEU RUIM"
+      exit
+  fi
+}
+
+merge(){
+  executeGit "git checkout -b $branch --track origin/$1"
+  executeGit "git merge --no-ff $action/$branch"
+  executeGit "git push origin $1"
+}
+
+if [ "$operation" = $init ]
+then
+  executeGit "git init"
+  executeGit "git add ."
+  executeGit "git commit --allow-empty -m "Initial commit""
+  executeGit "git checkout -b homolog master"
+
+
+  echo "Setup remote repository. Type the remote repository url"
+  read -r origin
+  executeGit "git remote add origin $origin"
+  executeGit "git push origin master"
+elif [ "$operation" = $commit ]
+then
+  icon=""
+
+  echo "Select commit type"
+  echo "  1) Bug-fix"
+  echo "  2) Feature"
+  echo "  3) Improvement"
+  echo "  4) Refactor"
+  echo "  5) Documentation"
+  echo "  6) Critical hotfix"
+  echo "  7) fix"
+  echo "  8) Deploy"
+
+  read -r n
+  case $n in
+    1) icon=":bug:";;
+    2) icon=":sparkles:";;
+    3) icon=":zap:";;
+    4) icon=":hammer:";;
+    5) icon=":books:";;
+    6) icon=":ambulance:";;
+    7) icon=":wrench:";;
+    8) icon=":rocket:";;
+    *) icon="";;
+  esac
+  executeGit "git commit -m '$icon $action'  "
+else
+
+  if [ "$action" = "start" ]
+  then
+    echo "Digite o nome da branch"
+    read -r branch
+    executeGit "git fetch --all"
+    executeGit "git checkout -b $branch --track origin/master"
+  elif [ "$action" = "publish" ]
+  then
+    executeGit "git checkout  $operation/$branch"
+    executeGit "git push origin $action/$branch"
+  elif [ "$action" = "pull" ]
+  then
+    executeGit "git checkout -b $operation/$branch"
+    executeGit "git pull --rebase origin $operation/$branch"
+  elif [ "$action" = "finish" ]
+  then
+    merge homolog
+    if [ "$operation" = $release ] ||  [ "$operation" = $hotfix ]; then
+        merge master
+        executeGit "git branch -d $operation/$branch"
+        executeGit "git push origin :$operation/$branch"
+    fi
+  fi
+fi
+
+echo "Concluido"
